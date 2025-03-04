@@ -69,11 +69,21 @@ set "dark_red=!ESC![31m"
 set "white_black=!ESC![7m"
 set "red_black=!ESC![7;31m"
 set "green_black=!ESC![7;92m"
+set "blue_black=!ESC![7;94m"
 ::echo [-] Loading: Text styles...
 set "reset=!ESC![0m"
 set "bold=!ESC![1m"
 set "underline=!ESC![4m"
 :::::::::::::::::::::::::::::::::::::::::::::::: END OF SECTION
+
+set "_dataPATH="
+set "_fileName=__SLChat_COMMS"
+
+if "!_localMode!" == "true" (
+    set "_dataPATH=!cd!\All Students"
+) else (
+    set "_dataPATH=P:\Composite\All Students\"
+)
 
 title SLChat
 cls
@@ -89,15 +99,6 @@ cURL -L --output "Plugins/TypeWriter.exe" --url "https://github.com/Batch-Man/Ty
 ping localhost -n 3 > nul
 cd "Plugins"
 cls
-
-
-set "_dataPATH="
-
-if "!_locaMode!" == "true" (
-    set "_dataPATH=%cd%\"
-) else (
-    set "_dataPATH=P:\Composite\All Students\"
-)
 
 %chcp_on%
 cls
@@ -144,6 +145,7 @@ set "authInput_1="
 if "%username%" == "admin" ( set "_canPass=true" )
 if "%username%" == "karim.dalati1" ( set "_canPass=true" )
 if "%username%" == "emre.candemir" ( set "_canPass=true" )
+if "%username%" == "abdullah.elali" ( set "_canPass=true" )
 
 if "%_canPass%" == "false" (
     echo   !red_black!^| UNWHITELISTED USER : ACCESS DENIED ^|!reset!
@@ -180,24 +182,156 @@ if "%username%" == "karim.dalati1" (
         set "_canPass2=true"
     )
     goto continue_2
+) else if "%username%" == "abdullah.elali" (
+    if "%authInput_1%" == "saratayri" (
+        set "_canPass2=true"
+    )
+    goto continue_2
 ) else ( goto continue_2 )
 
 :continue_2
 echo.
 ping localhost -n 2 > nul
 if "%_canPass2%" == "true" (
-    echo   !green_black!^| CORRECT PASSWORD - LOADING ^|!reset!
+    echo   !green_black!^| CORRECT PASSWORD ^|!reset!
     %PRINT%^ ^ 
     echo [ PRESS ANY KEY ]
     pause > nul
-    exit
+    goto searchComms
 ) else (
     echo   !red_black!^| INVALID PASSWORD - EXITING ^|!reset!
     timeout /t 3 > nul
     exit
 )
+cls
+echo.
+echo __SLChat Crashed...
+pause > nul
+exit
 
-::set /p authInput_1=""
+:searchComms
+MODE con:cols=79 lines=30
+cls
+echo.
+if "!_localMode!" == "true" (
+    Call TypeWriter " > Searching for LOCAL data path..." 15
+) else (
+    Call TypeWriter " > Searching for SHARED data path..." 15
+)
+echo.
+ping localhost -n 2 > nul
+if not exist "!_dataPATH!" (
+    echo.
+    echo  !red_black!^| LOCAL DATA PATH DOESN'T EXIST - !_dataPATH! - EXITING ^|!reset!
+    timeout /t 5 > nul
+    exit
+)
+echo.
+Call TypeWriter " > Searching for COMMS file..." 15
+echo.
+ping localhost -n 2 > nul
+if not exist "!_dataPATH!\!_fileName!" (
+    Call TypeWriter " > COMMS file doesn't exist.. Creating it..." 15
+    mkdir "!_dataPATH!\!_fileName!"
+)
+:: Check if COMMS file is hidden, if not then it hides it
+for /f "tokens=1" %%A in ('attrib "!_dataPATH!\!_fileName!"') do (
+    if not "%%A"=="H" (
+        attrib +h "!_dataPATH!\!_fileName!"
+    )
+)
+goto mainMenu
+Call TypeWriter " > Searching for connected devices..." 15
+ping localhost -n 2 > nul
+pause > nul
 
-::%PRINT%{171;5;27}TEST Red
+:mainMenu
+%chcp_on%
+:: Combine the variables into the full path
+set "fullPath=!_dataPATH!\!_fileName!"
+set "_mainMenuInput="
+
+:: Set maximum number of spaces (adjust as needed)
+set "maxSpaces=56"
+
+:: Create a temporary VBScript to calculate file name length
+echo Set objArgs = WScript.Arguments > temp.vbs
+echo fileName = objArgs(0) >> temp.vbs
+echo WScript.Echo Len(fileName) >> temp.vbs
+
+
+:: Step 2: Display the menu header
+cls
+echo  ╔═══════════════════════════════════════════════════════════════════════════╗
+echo  ║ !red_black!                          ★  SLChat: DEVICES  ★                          !reset! ║
+:: Step 3: Loop through files and display them with padding
+echo  ║                                                                           ║
+echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
+echo  ║  ╭─────────────────────────────────────────────────────────────────────╮  ║
+:: Process each file in the directory
+for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
+    set "fileName=%%F"
+
+    :: Call the temporary VBScript to get the length of the file name
+    for /f %%L in ('cscript //nologo temp.vbs "!fileName!"') do set "fileLength=%%L"
+
+    :: Calculate the spaces required
+    set /a "spacesRequired=!maxSpaces!-!fileLength!"
+
+    :: Generate the spaces
+    set "spaces="
+    for /l %%S in (1,1,!spacesRequired!) do set "spaces=!spaces! "
+
+    :: Output the file name with the calculated spaces
+    echo  ║  ^| !bold!DeviceName:!reset! !fileName!!spaces!^|  ║
+)
+echo  ║  ╰─────────────────────────────────────────────────────────────────────╯  ║
+echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
+echo  ╠═══════════════════════════════════════════════════════════════════════════╣
+echo  ║ !blue_black!                            COMMAND OPTIONS                              !reset! ║
+echo  ║                                                                           ║
+echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
+echo  ║ $connect id --Connects to the specific device                             ║
+echo  ║ $connect ALL --Connects to all active devices                             ║
+echo  ║ $checkactive id --Checks if the specific device is active                 ║
+echo  ║ $checkactive ALL --Checks if all devices are active                       ║
+echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
+echo  ╚═══════════════════════════════════════════════════════════════════════════╝
+:: Clean up
+del temp.vbs
+echo.
+%PRINT%{255;255;255} 
+set /p _mainMenuInput="► "
+goto :process_command_MM
+
+:process_command_MM
+@echo off
+setlocal EnableDelayedExpansion
+
+:: Define your string and delimiter
+set string=Hello World from Batch
+set delimiter= 
+
+:: Use mshta to execute JavaScript, splitting the string and writing results to a text file
+for /f "delims=" %%a in ('mshta "javascript:
+    var str='%string%';
+    var delimiter='%delimiter%';
+    var result = str.split(delimiter);
+    for (var i = 0; i < result.length; i++) {
+        console.log(result[i]); // Output each part to stdout
+    }
+    window.close();"') do (
+    set /a count+=1
+    set part_!count!=%%a
+)
+
+
+pause
+
+echo There are %count% parts:
+for /l %%i in (1,1,%count%) do (
+    echo Part %%i: !part_%%i!
+)
+
+endlocal
 pause > nul
